@@ -28,6 +28,7 @@ jobs:
         username: bengreenier
         # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
         password: ${{ secrets.DH_PAT }}
+        tags: latest
         tag_with_ref: true
         # Docker repository to tag the image with
         repository: bengreenier/mon
