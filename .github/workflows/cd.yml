@@ -36,6 +36,8 @@ jobs:
         username: bengreenier
         # Password or personal access token used to log in to a Docker registry. If not set then no login will occur
         password: ${{ secrets.DH_PAT }}
+        # Comma-delimited list of tags. These will be added to the registry/repository to form the image's tags
+        tags: latest
         # Docker repository to tag the image with
         repository: bengreenier/mon
         # Adds labels with git repository information to the built image
