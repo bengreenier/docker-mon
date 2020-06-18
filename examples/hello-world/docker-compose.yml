@@ -8,6 +8,10 @@ services:
       - "mon.checks.cleanup.code=0"
   mon:
     build: ../../
+    environment:
+      - "MON_INTERVAL=1000"
+      - "MON_PREFIX=/hello-world"
+      - "MON_QUIET=true"
     volumes:
       - type: bind
         source: /var/run/docker.sock
