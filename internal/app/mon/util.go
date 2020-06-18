@@ -1,23 +1,12 @@
 package mon
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
+	"log"
 	"strings"
 
 	"github.com/docker/docker/client"
-	"github.com/docker/engine/api/types"
 )
-
-func parseState(state string) (types.ContainerState, error) {
-	var dat types.ContainerState
-	if err := json.Unmarshal([]byte(state), &dat); err != nil {
-		return types.ContainerState{}, err
-	}
-
-	return dat, nil
-}
 
 func namesContainPrefix(names []string, prefix string) bool {
 	for _, name := range names {
@@ -37,7 +26,8 @@ func withRetry(max int64, fn func() error) error {
 			return nil
 		}
 
-		fmt.Printf("Retrying (attempt %v/%v)...\n", i, max)
+		log.Printf("Error %v\n", err)
+		log.Printf("Retrying (attempt %v/%v)...\n", i, max)
 	}
 
 	return errors.New("Retry count exceeded")

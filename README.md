@@ -51,6 +51,16 @@ Cleanup monitoring helps keep the host os from becoming cluttered with content f
 
 `mon` does this by observing the container metadata, and if `State.Running`, `state.Restarting`, are false, and `state.ExitCode` matches the expected value (default is `0`), it will remove the container. 
 
+## Arguments 🙋‍♀️
+
+`mon` supports some command-line arguments to control it's behavior. Here they are:
+
+
+- `control` - Docker control socket. Default is `unix:///var/run/docker.sock`.
+- `prefix` - Docker container prefix to limit observation to. Default is empty, meaning no prefix is required, all containers will be observed.
+- `interval` - Interval to poll at (in ms). Default is `10000` (10s).
+- `retries` - Max retry count for failed docker commands. Default is `10`.
+
 ## Metadata 🧬
 
 `mon` supports some additional metadata on containers, that inform it's actions. Here they are:
@@ -74,4 +84,12 @@ To create a release, create a tag locally, and push it to GitHub. Actions and Do
 ```
 git tag vx.x.x
 git push --tags
+```
+
+### Generating Mocks
+
+We use [mockgen](https://github.com/golang/mock) to generate mocks, that are then checked in. To re-generate them:
+
+```
+cd internal/app/mon && mockgen -destination ./mocks/dockerd.go . DockerAPI
 ```

@@ -9,40 +9,6 @@ import (
 	"github.com/docker/docker/pkg/testutil/assert"
 )
 
-func TestParseStateOk(t *testing.T) {
-	input := types.ContainerState{
-		Health: &types.Health{
-			Status: "Healthy",
-		},
-		Running:  true,
-		ExitCode: 0,
-	}
-
-	output, err := parseState(serializeState(input))
-
-	assert.Equal(t, err, nil)
-	assert.Equal(t, output.Health.Status, input.Health.Status)
-	assert.Equal(t, output.Health.FailingStreak, input.Health.FailingStreak)
-
-	assert.Equal(t, output.Dead, input.Dead)
-	assert.Equal(t, output.Error, input.Error)
-	assert.Equal(t, output.ExitCode, input.ExitCode)
-	assert.Equal(t, output.FinishedAt, input.FinishedAt)
-	assert.Equal(t, output.OOMKilled, input.OOMKilled)
-	assert.Equal(t, output.Paused, input.Paused)
-	assert.Equal(t, output.Pid, input.Pid)
-	assert.Equal(t, output.Restarting, input.Restarting)
-	assert.Equal(t, output.Running, input.Running)
-	assert.Equal(t, output.StartedAt, input.StartedAt)
-	assert.Equal(t, output.Status, input.Status)
-}
-
-func TestParseStateErr(t *testing.T) {
-	_, err := parseState("invalid")
-
-	assert.NotNil(t, err)
-}
-
 func TestNamesContainPrefix(t *testing.T) {
 	assert.Equal(t, namesContainPrefix([]string{"a_one"}, "a"), true)
 	assert.Equal(t, namesContainPrefix([]string{"a_one", "a_two"}, "a"), true)

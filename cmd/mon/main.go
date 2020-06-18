@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,6 +18,8 @@ var retries = flag.Int64("retries", 10, "Max retry count for failed docker comma
 
 func main() {
 	flag.Parse()
+
+	log.Printf("control: '%s', prefix: '%s', interval: '%v', retries: %v\n", *control, *prefix, *interval, *retries)
 
 	monitor := mon.Monitor{
 		Dockerd: &mon.DockerD{
