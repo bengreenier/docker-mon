@@ -1,0 +1,13 @@
+version: "2.4"
+services:
+  nginx:
+    build: ./
+    labels:
+      - "mon.observe=1"
+      - "mon.checks.health=1"
+  mon:
+    build: ../../
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock

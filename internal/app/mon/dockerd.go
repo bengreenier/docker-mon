@@ -11,9 +11,10 @@ import (
 
 // DockerAPI is something that implements the docker API
 type DockerAPI interface {
-	ExecuteListQuery(filterMap map[string]string) ([]types.Container, error)
+	ExecuteListQuery(filterList []string) ([]types.Container, error)
 	Restart(timeoutMs int64, cont types.Container) error
 	Remove(types.Container) error
+	Inspect(cont types.Container) (types.ContainerJSON, error)
 }
 
 // DockerD implements the DockerAPI for the docker daemon
@@ -34,11 +35,11 @@ func (d *DockerD) withCli(fn func(*client.Client) error) error {
 }
 
 // ExecuteListQuery to find containers
-func (d *DockerD) ExecuteListQuery(filterMap map[string]string) ([]types.Container, error) {
+func (d *DockerD) ExecuteListQuery(filterList []string) ([]types.Container, error) {
 	filterArgs := filters.NewArgs()
 
-	for key, val := range filterMap {
-		filterArgs.Add(key, val)
+	for _, val := range filterList {
+		filterArgs.Add("label", val)
 	}
 
 	var containerList []types.Container
@@ -48,6 +49,7 @@ func (d *DockerD) ExecuteListQuery(filterMap map[string]string) ([]types.Contain
 	if err := d.withRetry(func() error {
 		return d.withCli(func(cli *client.Client) error {
 			data, err := cli.ContainerList(ctx, types.ContainerListOptions{
+				All:     true,
 				Filters: filterArgs,
 			})
 
@@ -84,10 +86,31 @@ func (d *DockerD) Remove(cont types.Container) error {
 
 	return d.withRetry(func() error {
 		return d.withCli(func(cli *client.Client) error {
-			return cli.ContainerRemove(ctx, cont.ID, types.ContainerRemoveOptions{
-				RemoveLinks:   true,
-				RemoveVolumes: true,
-			})
+			return cli.ContainerRemove(ctx, cont.ID, types.ContainerRemoveOptions{})
 		})
 	})
+}
+
+// Inspect a container
+func (d *DockerD) Inspect(cont types.Container) (types.ContainerJSON, error) {
+	ctx := context.Background()
+
+	var data types.ContainerJSON
+
+	if err := d.withRetry(func() error {
+		return d.withCli(func(cli *client.Client) error {
+			output, err := cli.ContainerInspect(ctx, cont.ID)
+			if err != nil {
+				return err
+			}
+
+			data = output
+
+			return nil
+		})
+	}); err != nil {
+		return types.ContainerJSON{}, err
+	}
+
+	return data, nil
 }

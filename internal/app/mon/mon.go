@@ -1,10 +1,11 @@
 package mon
 
 import (
-	"fmt"
 	"log"
 	"strconv"
 	"time"
+
+	"github.com/docker/docker/api/types"
 )
 
 // ObserveLabel is how we detect containers we want to monitor
@@ -28,8 +29,11 @@ const DefaultCleanupExitCode int = 0
 // DefaultRestartTimeoutMs is the default timeout for restarting
 const DefaultRestartTimeoutMs int64 = 10 * 1000
 
-// Unhealthy is the literal "Unhealthy"
-const Unhealthy string = "Unhealthy"
+// RunningState is the literal "running"
+const RunningState string = "running"
+
+// ExitedState is the literal "exited"
+const ExitedState string = "exited"
 
 // Monitor is the core application controller, to monitor and act on containers
 type Monitor struct {
@@ -38,8 +42,9 @@ type Monitor struct {
 }
 
 func (m *Monitor) handleContainerHealth() {
-	conts, err := m.Dockerd.ExecuteListQuery(map[string]string{
-		"label": fmt.Sprintf("%s,%s", ObserveLabel, CheckHealthLabel),
+	conts, err := m.Dockerd.ExecuteListQuery([]string{
+		ObserveLabel,
+		CheckHealthLabel,
 	})
 
 	if err != nil {
@@ -51,11 +56,6 @@ func (m *Monitor) handleContainerHealth() {
 		//if we have a prefix value, and cont doesn't satisfy it, move along
 		if len(m.ContainerPrefix) > 0 && !namesContainPrefix(cont.Names, m.ContainerPrefix) {
 			continue
-		}
-
-		state, err := parseState(cont.State)
-		if err != nil {
-			log.Printf("parseState failed: %v\n", err)
 		}
 
 		expectedRestartTimeoutMs := DefaultRestartTimeoutMs
@@ -65,19 +65,32 @@ func (m *Monitor) handleContainerHealth() {
 			}
 		}
 
-		// it's unhealthy and running, restart it
-		if (state.Health != nil && state.Health.Status == Unhealthy) && state.Running {
-			log.Printf("Found unhealthy running container: %v (%v)\n", cont.ID, cont.Names[0])
-			if err := m.Dockerd.Restart(expectedRestartTimeoutMs, cont); err != nil {
-				log.Printf("Failed to restart unhealthy container %v (%v): %v\n", cont.ID, cont.Names[0], err)
+		// if it's running, we might need to restart it - we guard the "expensive" inspect call this way
+		if cont.State == RunningState {
+			log.Printf("Checking container health: %v (%v)\n", cont.ID, cont.Names[0])
+
+			inspect, err := m.Dockerd.Inspect(cont)
+			if err != nil {
+				log.Printf("Inspect failed: %v\n", err)
+				continue
+			}
+
+			if inspect.State != nil && inspect.State.Health != nil && inspect.State.Health.Status == types.Unhealthy {
+				log.Printf("Found unhealthy running container: %v (%v)\n", cont.ID, cont.Names[0])
+				if err := m.Dockerd.Restart(expectedRestartTimeoutMs, cont); err != nil {
+					log.Printf("Failed to restart unhealthy container %v (%v): %v\n", cont.ID, cont.Names[0], err)
+				} else {
+					log.Printf("Container restarted: %v (%v)\n", cont.ID, cont.Names[0])
+				}
 			}
 		}
 	}
 }
 
 func (m *Monitor) handleContainerCleanup() {
-	conts, err := m.Dockerd.ExecuteListQuery(map[string]string{
-		"label": fmt.Sprintf("%s,%s", ObserveLabel, CheckCleanupLabel),
+	conts, err := m.Dockerd.ExecuteListQuery([]string{
+		ObserveLabel,
+		CheckCleanupLabel,
 	})
 
 	if err != nil {
@@ -91,11 +104,6 @@ func (m *Monitor) handleContainerCleanup() {
 			continue
 		}
 
-		state, err := parseState(cont.State)
-		if err != nil {
-			log.Printf("parseState failed: %v\n", err)
-		}
-
 		expectedExitCode := DefaultCleanupExitCode
 		if errCode, ok := cont.Labels[CleanupExitCodeLabelKey]; ok {
 			if i, err := strconv.Atoi(errCode); err == nil {
@@ -103,11 +111,24 @@ func (m *Monitor) handleContainerCleanup() {
 			}
 		}
 
-		// it's not running, nor restarting, and exit code is as expected
-		if !state.Running && !state.Restarting && state.ExitCode == expectedExitCode {
-			log.Printf("Found container to cleanup: %v (%v)\n", cont.ID, cont.Names[0])
-			if err := m.Dockerd.Remove(cont); err != nil {
-				log.Printf("Failed to remove container %v (%v): %v\n", cont.ID, cont.Names[0], err)
+		// if it's exited, it's likely we'll need to clean it - we guard the "expensive" inspect call this way
+		if cont.State == ExitedState {
+			log.Printf("Checking container cleanliness: %v (%v)\n", cont.ID, cont.Names[0])
+
+			inspect, err := m.Dockerd.Inspect(cont)
+			if err != nil {
+				log.Printf("Inspect failed: %v\n", err)
+				continue
+			}
+
+			// if it's got the expected error code, we clean it up
+			if inspect.State.ExitCode == expectedExitCode {
+				log.Printf("Found container to cleanup: %v (%v)\n", cont.ID, cont.Names[0])
+				if err := m.Dockerd.Remove(cont); err != nil {
+					log.Printf("Failed to remove container %v (%v): %v\n", cont.ID, cont.Names[0], err)
+				} else {
+					log.Printf("Container cleaned: %v (%v)\n", cont.ID, cont.Names[0])
+				}
 			}
 		}
 	}

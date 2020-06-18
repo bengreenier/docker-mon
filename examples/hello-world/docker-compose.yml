@@ -1,0 +1,14 @@
+version: "2.4"
+services:
+  hello-world:
+    image: hello-world:latest
+    labels:
+      - "mon.observe=1"
+      - "mon.checks.cleanup=1"
+      - "mon.checks.cleanup.code=0"
+  mon:
+    build: ../../
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
