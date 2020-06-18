@@ -1,7 +1,7 @@
 # docker-mon
 
 ![CD](https://github.com/bengreenier/docker-mon/workflows/CD/badge.svg)
-![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/bengreenier/docker-mod)
+![GitHub go.mod Go version (branch)](https://img.shields.io/github/go-mod/go-version/bengreenier/docker-mon/master)
 ![Docker Pulls](https://img.shields.io/docker/pulls/bengreenier/mon)
 
 Docker container monitor and micro-orchestrator 🩺📦
@@ -60,6 +60,17 @@ Cleanup monitoring helps keep the host os from becoming cluttered with content f
 - `prefix` - Docker container prefix to limit observation to. Default is empty, meaning no prefix is required, all containers will be observed.
 - `interval` - Interval to poll at (in ms). Default is `10000` (10s).
 - `retries` - Max retry count for failed docker commands. Default is `10`.
+- `quiet` - Only log when action is taken. Default is `false`.
+
+### Environment Variables 🌍
+
+The same [Arguments](#arguments) that are supported above, can be used as environment variables, prefixed with `MON_`. Here they are:
+
+- `MON_CONTROL` - Docker control socket. Default is `unix:///var/run/docker.sock`.
+- `MON_PREFIX` - Docker container prefix to limit observation to. Default is empty, meaning no prefix is required, all containers will be observed.
+- `MON_INTERVAL` - Interval to poll at (in ms). Default is `10000` (10s).
+- `MON_RETRIES` - Max retry count for failed docker commands. Default is `10`.
+- `MON_QUIET` - Only log when action is taken. Default is `false`.
 
 ## Metadata 🧬
 

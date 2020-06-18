@@ -39,6 +39,7 @@ const ExitedState string = "exited"
 type Monitor struct {
 	ContainerPrefix string
 	Dockerd         DockerAPI
+	Quiet           bool
 }
 
 func (m *Monitor) handleContainerHealth() {
@@ -67,7 +68,9 @@ func (m *Monitor) handleContainerHealth() {
 
 		// if it's running, we might need to restart it - we guard the "expensive" inspect call this way
 		if cont.State == RunningState {
-			log.Printf("Checking container health: %v (%v)\n", cont.ID, cont.Names[0])
+			if !m.Quiet {
+				log.Printf("Checking container health: %v (%v)\n", cont.ID, cont.Names[0])
+			}
 
 			inspect, err := m.Dockerd.Inspect(cont)
 			if err != nil {
@@ -76,7 +79,9 @@ func (m *Monitor) handleContainerHealth() {
 			}
 
 			if inspect.State != nil && inspect.State.Health != nil && inspect.State.Health.Status == types.Unhealthy {
-				log.Printf("Found unhealthy running container: %v (%v)\n", cont.ID, cont.Names[0])
+				if !m.Quiet {
+					log.Printf("Found unhealthy running container: %v (%v)\n", cont.ID, cont.Names[0])
+				}
 				if err := m.Dockerd.Restart(expectedRestartTimeoutMs, cont); err != nil {
 					log.Printf("Failed to restart unhealthy container %v (%v): %v\n", cont.ID, cont.Names[0], err)
 				} else {
@@ -113,7 +118,9 @@ func (m *Monitor) handleContainerCleanup() {
 
 		// if it's exited, it's likely we'll need to clean it - we guard the "expensive" inspect call this way
 		if cont.State == ExitedState {
-			log.Printf("Checking container cleanliness: %v (%v)\n", cont.ID, cont.Names[0])
+			if !m.Quiet {
+				log.Printf("Checking container cleanliness: %v (%v)\n", cont.ID, cont.Names[0])
+			}
 
 			inspect, err := m.Dockerd.Inspect(cont)
 			if err != nil {
@@ -123,7 +130,9 @@ func (m *Monitor) handleContainerCleanup() {
 
 			// if it's got the expected error code, we clean it up
 			if inspect.State.ExitCode == expectedExitCode {
-				log.Printf("Found container to cleanup: %v (%v)\n", cont.ID, cont.Names[0])
+				if !m.Quiet {
+					log.Printf("Found container to cleanup: %v (%v)\n", cont.ID, cont.Names[0])
+				}
 				if err := m.Dockerd.Remove(cont); err != nil {
 					log.Printf("Failed to remove container %v (%v): %v\n", cont.ID, cont.Names[0], err)
 				} else {
@@ -136,8 +145,12 @@ func (m *Monitor) handleContainerCleanup() {
 
 // Poll checks the dockerd system and executes operations as needed
 func (m *Monitor) Poll(t time.Time) {
-	log.Printf("CheckStart for %v\n", t)
+	if !m.Quiet {
+		log.Printf("CheckStart for %v\n", t)
+	}
 	m.handleContainerHealth()
 	m.handleContainerCleanup()
-	log.Printf("CheckEnd for %v\n", t)
+	if !m.Quiet {
+		log.Printf("CheckEnd for %v\n", t)
+	}
 }

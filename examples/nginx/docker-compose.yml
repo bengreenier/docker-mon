@@ -7,6 +7,8 @@ services:
       - "mon.checks.health=1"
   mon:
     build: ../../
+    environment:
+      - "MON_PREFIX=/nginx"
     volumes:
       - type: bind
         source: /var/run/docker.sock
