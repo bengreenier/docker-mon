@@ -1,5 +1,6 @@
 # docker-mon
 
+![CD](https://github.com/bengreenier/docker-mon/workflows/CD/badge.svg)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/bengreenier/docker-mod)
 ![Docker Pulls](https://img.shields.io/docker/pulls/bengreenier/mon)
 
@@ -65,3 +66,12 @@ Cleanup monitoring helps keep the host os from becoming cluttered with content f
 Thanks for your interest! To participate, you'll need [VSCode](https://code.visualstudio.com/), as development occurs in a [DevContainer](https://code.visualstudio.com/docs/remote/containers). Other than that, I don't have much advice at this point. We'll update this section as needed. 
 
 This project follows the same guidelines as the [Microsoft Code Of Conduct](https://opensource.microsoft.com/codeofconduct/), but to escalate issues, please use GitHub Issues, as this project isn't affiliated directly with Microsoft, and issues shouldn't be raised through Microsoft's line of support.
+
+### Cutting a Release
+
+To create a release, create a tag locally, and push it to GitHub. Actions and Dockerhub will do the rest! ✨
+
+```
+git tag vx.x.x
+git push --tags
+```
